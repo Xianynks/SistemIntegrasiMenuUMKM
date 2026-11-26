@@ -1,6 +1,6 @@
 # Satu Worker melayani frontend (folder public/) sekaligus API (/api/*).
 # Untuk UMKM lain: salin proyek, ganti `name` dan [vars], lalu atur secrets sendiri.
-name = "umkm-katalog"
+name = "burjo-contoh"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
 
