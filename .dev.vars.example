@@ -1,0 +1,11 @@
+# Salin menjadi .dev.vars (jangan di-commit). Dipakai wrangler dev dan scripts/init-db.mjs
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/neondb?sslmode=require
+JWT_SECRET=ganti-dengan-string-acak-minimal-32-karakter
+
+# Hanya untuk scripts/init-db.mjs (membuat akun awal). Hapus setelah selesai.
+ADMIN_NAME=Pemilik
+ADMIN_EMAIL=admin@contoh.id
+ADMIN_PASSWORD=ganti-password-admin
+STAFF_NAME=Penjaga
+STAFF_EMAIL=penjaga@contoh.id
+STAFF_PASSWORD=ganti-password-penjaga

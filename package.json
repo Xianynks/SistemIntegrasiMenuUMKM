@@ -1,0 +1,16 @@
+{
+  "name": "umkm-katalog",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Katalog dan pemesanan menu UMKM (PWA) - Cloudflare Workers + Neon PostgreSQL",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "node scripts/init-db.mjs",
+    "db:sample": "node scripts/init-db.mjs --sample"
+  },
+  "dependencies": { "@neondatabase/serverless": "^1.0.0" },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

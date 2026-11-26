@@ -1,0 +1,21 @@
+# Satu Worker melayani frontend (folder public/) sekaligus API (/api/*).
+# Untuk UMKM lain: salin proyek, ganti `name` dan [vars], lalu atur secrets sendiri.
+name = "umkm-katalog"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[vars]
+BUSINESS_NAME = "Burjo Contoh"
+BUSINESS_ADDRESS = "Jl. Contoh No. 1, Semarang"
+BUSINESS_HOURS = "Setiap hari, 17.00-03.00"
+BUSINESS_CONTACT = "0812-0000-0000"
+TIMEZONE = "Asia/Jakarta"
+
+# Secrets (JANGAN ditulis di sini), atur dengan:
+#   npx wrangler secret put DATABASE_URL
+#   npx wrangler secret put JWT_SECRET
