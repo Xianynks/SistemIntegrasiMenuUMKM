@@ -84,6 +84,8 @@ route('POST', '/api/public/orders', null, async ({ req, sql }) => {
   const tables = await tableCount(sql);
   const table = toInt(b.tableNumber);
   if (!(table >= 1 && table <= tables)) fail(400, `Nomor meja harus 1 sampai ${tables}.`);
+  const label = str(b.customerLabel, 40);
+  if (!label) fail(400, 'Nama pemesan wajib diisi.');
   if (!Array.isArray(b.items) || !b.items.length || b.items.length > 50) fail(400, 'Pilih minimal satu menu.');
   const want = new Map();
   for (const i of b.items) {
@@ -106,7 +108,7 @@ route('POST', '/api/public/orders', null, async ({ req, sql }) => {
   const code = 'ORD-' + String(oid).padStart(4, '0');
   await sql.transaction([
     sql`INSERT INTO orders (id, order_code, table_number, customer_label, notes, idem_key)
-        VALUES (${oid}, ${code}, ${table}, ${str(b.customerLabel, 40)}, ${str(b.notes, 200)}, ${idem})`,
+        VALUES (${oid}, ${code}, ${table}, ${label}, ${str(b.notes, 200)}, ${idem})`,
     ...rows.map((r) => sql`INSERT INTO order_items (order_id, menu_id, menu_name, unit_price, quantity)
         VALUES (${oid}, ${r.id}, ${r.name}, ${r.price}, ${want.get(r.id)})`),
   ]);
@@ -219,11 +221,62 @@ route('GET', '/api/staff/finance', 'admin', async ({ env, sql }) => {
     SELECT COALESCE(SUM(amount), 0)::int AS total,
       COALESCE(SUM(amount) FILTER (WHERE method = 'QRIS'), 0)::int AS qris,
       COALESCE(SUM(amount) FILTER (WHERE method = 'Cash'), 0)::int AS cash,
-      COALESCE(SUM(amount) FILTER (WHERE date_trunc('month', paid_at AT TIME ZONE ${tz}) = date_trunc('month', now() AT TIME ZONE ${tz})), 0)::int AS month
+      COALESCE(SUM(amount) FILTER (WHERE date_trunc('month', paid_at AT TIME ZONE ${tz}) = date_trunc('month', now() AT TIME ZONE ${tz})), 0)::int AS month,
+      COALESCE(SUM(amount) FILTER (WHERE date(paid_at AT TIME ZONE ${tz}) = date(now() AT TIME ZONE ${tz})), 0)::int AS today
     FROM payments`;
   const monthly = await sql`SELECT to_char(paid_at AT TIME ZONE ${tz}, 'YYYY-MM') AS month, SUM(amount)::int AS total
       FROM payments GROUP BY 1 ORDER BY 1`;
   return json({ ...t, monthly, tz });
+});
+
+route('GET', '/api/staff/finance/export', 'admin', async ({ env, sql }) => {
+  const tz = env.TIMEZONE || 'Asia/Jakarta';
+  const tx = await sql`
+    SELECT p.paid_at, o.order_code AS code, o.customer_label AS name, o.table_number AS "table", p.amount, p.method,
+           p.confirmed_name AS by,
+      COALESCE((SELECT json_agg(json_build_object('name', i.menu_name, 'price', i.unit_price, 'qty', i.quantity) ORDER BY i.id)
+                FROM order_items i WHERE i.order_id = o.id), '[]'::json) AS items
+    FROM payments p JOIN orders o ON o.id = p.order_id ORDER BY p.paid_at`;
+  const recap = (fmt) => sql`
+    WITH q AS (SELECT order_id, SUM(quantity)::int AS qty FROM order_items GROUP BY order_id)
+    SELECT to_char(p.paid_at AT TIME ZONE ${tz}, ${fmt}) AS key, count(*)::int AS trx, COALESCE(SUM(q.qty), 0)::int AS items,
+      COALESCE(SUM(p.amount) FILTER (WHERE p.method = 'QRIS'), 0)::int AS qris,
+      COALESCE(SUM(p.amount) FILTER (WHERE p.method = 'Cash'), 0)::int AS cash, SUM(p.amount)::int AS total
+    FROM payments p LEFT JOIN q ON q.order_id = p.order_id GROUP BY 1 ORDER BY 1`;
+  const [daily, monthly] = await Promise.all([recap('YYYY-MM-DD'), recap('YYYY-MM')]);
+  return json({ tz, daily, monthly, transactions: tx.map((r) => ({ paidAt: r.paid_at, code: r.code, name: r.name,
+    table: r.table, amount: r.amount, method: r.method, by: r.by, items: r.items })) });
+});
+
+/* Gambar QRIS UMKM (disimpan di tabel settings, hanya dapat dilihat staf) */
+route('GET', '/api/staff/qris', 'staff', async ({ sql }) => {
+  const rows = await sql`SELECT key, value FROM settings WHERE key IN ('qris_image', 'qris_v')`;
+  const m = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  return json({ image: m.qris_image ? `/api/staff/qris/image?v=${m.qris_v || 0}` : null });
+});
+
+route('GET', '/api/staff/qris/image', 'staff', async ({ sql }) => {
+  const [r] = await sql`SELECT value FROM settings WHERE key = 'qris_image'`;
+  const m = r && /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(r.value);
+  if (!m) return new Response('Not found', { status: 404 });
+  return new Response(Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0)), {
+    headers: { 'content-type': m[1], 'cache-control': 'private, max-age=3600' },
+  });
+});
+
+route('PUT', '/api/staff/qris', 'admin', async ({ req, sql }) => {
+  const b = await readJson(req);
+  if (b.image === null) {
+    await sql`DELETE FROM settings WHERE key IN ('qris_image', 'qris_v')`;
+    return json({ image: null });
+  }
+  if (typeof b.image !== 'string' || b.image.length > 700_000 || !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b.image))
+    fail(400, 'Gambar QRIS tidak valid atau terlalu besar.');
+  await sql.transaction([
+    sql`INSERT INTO settings (key, value) VALUES ('qris_image', ${b.image}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+    sql`INSERT INTO settings (key, value) VALUES ('qris_v', ${String(Date.now())}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+  ]);
+  return json({ image: 'ok' });
 });
 
 route('PUT', '/api/staff/settings', 'admin', async ({ req, sql }) => {

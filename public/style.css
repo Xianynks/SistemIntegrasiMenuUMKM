@@ -29,3 +29,9 @@ nav em{position:absolute;top:2px;right:18%;background:#c0392b;color:#fff;font-st
 .sh{background:var(--bg);width:100%;max-width:560px;max-height:88%;overflow:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
 .big{font-size:70px;text-align:center;background:var(--im);border-radius:12px;padding:14px;margin-bottom:8px}
 .qr{border:2px dashed var(--bd);border-radius:10px;padding:22px;text-align:center;color:var(--mu);margin:6px 0}
+
+.tabs{display:flex;gap:8px;margin:6px 0 12px}.tabs a{flex:1;position:relative;text-align:center;text-decoration:none;border:1px solid var(--pr);color:var(--pr);border-radius:10px;padding:8px 6px;font-size:13px;font-weight:600}.tabs a.on{background:var(--pr);color:var(--bg)}
+.tabs em{position:absolute;top:-6px;right:-4px;background:#c0392b;color:#fff;font-style:normal;border-radius:99px;font-size:10px;padding:0 5px}
+.mt{display:flex;gap:12px}.mt .b{margin:0}
+.st{display:flex;align-items:center}.st .qn{width:52px;margin:0;padding:6px 0;text-align:center;-moz-appearance:textfield}
+.qn::-webkit-outer-spin-button,.qn::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}

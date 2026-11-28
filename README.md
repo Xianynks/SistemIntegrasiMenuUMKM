@@ -85,4 +85,26 @@ Publik: `GET /api/public/info|menu`, `GET /api/public/menu/:id/image`, `POST /ap
 Auth: `POST /api/auth/login|logout`, `GET /api/auth/me`, `PATCH /api/auth/password`
 Staf: `GET /api/staff/counts|orders|payments|categories|menus`, `PATCH /api/staff/orders/:id`, `PATCH /api/staff/orders/:id/items/:itemId`,
 `POST /api/staff/orders/:id/payments`, `POST|DELETE /api/staff/categories`, `POST|PUT|DELETE /api/staff/menus`
-Admin: `GET /api/staff/finance|trash`, `POST /api/staff/trash/:id/restore`, `DELETE /api/staff/trash/:id`, `PUT /api/staff/settings`
+Admin: `GET /api/staff/finance|finance/export|trash`, `PUT /api/staff/qris`, `POST /api/staff/trash/:id/restore`, `DELETE /api/staff/trash/:id`, `PUT /api/staff/settings`
+
+## Mengelola akun (tanpa UI)
+Akun dikelola lewat terminal memakai `scripts/users.mjs` (database mengikuti `DATABASE_URL` di `.dev.vars`).
+Tiga jenis akun dipetakan ke dua tingkat akses: **Pemilik** dan **Admin (Tim Developer)** = role `admin`, **Staff** = role `penjaga`.
+```bash
+npm run user -- list
+npm run user -- add --name "Pak Budi" --email budi@contoh.id --role pemilik       # password acak dicetak sekali
+npm run user -- add --name "Tim Developer" --email dev@contoh.id --role developer
+npm run user -- add --name "Staff 1" --email staff1@contoh.id --role staff
+npm run user -- update --email budi@contoh.id --name "Budi Santoso" --role admin
+npm run user -- passwd --email budi@contoh.id           # reset password + cabut semua sesi
+npm run user -- unlock --email budi@contoh.id           # buka kunci login (setelah 5x salah)
+npm run user -- logout --email budi@contoh.id           # paksa keluar semua perangkat
+npm run user -- delete --email staff1@contoh.id --yes
+```
+Skrip menolak menghapus atau menurunkan satu-satunya akun admin.
+
+## Deploy ulang setelah perubahan
+- **Manual:** `npm run deploy` (aktif dalam hitungan detik; secret tetap tersimpan, tidak perlu diisi ulang).
+- **Otomatis dari GitHub:** Cloudflare dashboard, Workers & Pages, pilih Worker, Settings, Builds, Connect ke repo; production branch `main`, deploy command `npx wrangler deploy`.
+- **Rollback:** `npx wrangler rollback` atau dashboard, Deployments, pilih versi sebelumnya.
+- Perubahan struktur database tidak ikut ter-deploy; jalankan SQL `ALTER TABLE ...` di Neon SQL Editor.

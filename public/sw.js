@@ -1,6 +1,6 @@
 // Service worker: shell aplikasi tersedia saat offline. API tidak pernah di-cache,
 // jadi pesanan dan pembayaran selalu butuh koneksi.
-const V = 'umkm-shell-v1';
+const V = 'umkm-shell-v2';
 const SHELL = ['/', '/app.js', '/style.css', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
